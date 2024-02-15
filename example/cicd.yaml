@@ -1,0 +1,40 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+  MAVEN_HOME: /usr/share/maven
+  PATH: ${{ env.JAVA_HOME }}/bin:${{ env.MAVEN_HOME }}/bin:${{ env.PATH }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        java-version: [11, 14]
+    concurrency:
+      group: ci-cd-${{ matrix.java-version }}-${{ github.ref }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up JDK ${{ matrix.java-version }}
+        uses: actions/setup-java@v2
+        with:
+          java-version: ${{ matrix.java-version }}
+
+      - name: Set up Maven
+        uses: nanasess/setup-maven@v1
+
+      - name: Build and Test
+        run: mvn -B verify --file pom.xml
+
+      - name: Deploy to Production
+        if: github.ref == 'refs/heads/main' && matrix.java-version == '11'
+        run: |
+          # Add deployment script or commands here
+          echo "Deploying to production environment..."
